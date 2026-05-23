@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>PSL Survivor Bingo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500;600&display=swap');
+:root{--gold:#F5C842;--cell-bg:rgba(8,12,22,0.75);--cell-border:rgba(245,200,66,0.35);--text-muted:rgba(255,255,255,0.6);--center-gold:rgba(245,200,66,0.18);}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Barlow',sans-serif;background:#0a0f1a;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:0 0 60px;overflow-x:hidden;}
+.topbar{width:100%;max-width:480px;display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;}
+.topbar-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--gold);}
+.topbar-sub{font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px;}
+.btn-settings{background:rgba(245,200,66,0.12);border:1px solid var(--cell-border);border-radius:8px;color:var(--gold);font-size:18px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+#bingo-card{width:calc(100vw - 16px);max-width:464px;margin:0 8px;background-size:cover;background-position:center;border-radius:16px;border:1.5px solid var(--cell-border);overflow:hidden;position:relative;}
+.card-bg-overlay{position:absolute;inset:0;z-index:0;background:rgba(5,10,20,0.72);}
+.card-inner{position:relative;z-index:1;padding:12px 10px 14px;}
+.card-header{text-align:center;margin-bottom:10px;}
+.card-header-league{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;opacity:0.8;}
+.card-header-title{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:4px;color:var(--gold);line-height:1;}
+.card-header-season{font-family:'Barlow Condensed',sans-serif;font-size:11px;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
+.cell{aspect-ratio:1;background:var(--cell-bg);border:1px solid var(--cell-border);border-radius:8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;transition:border-color 0.15s;-webkit-user-select:none;user-select:none;}
+.cell:active{transform:scale(0.95);}
+.cell.filled{border-color:var(--gold);border-width:1.5px;}
+.cell.center{grid-column:2/4;grid-row:2/4;aspect-ratio:unset;background:var(--center-gold);border:2px solid var(--gold);border-radius:10px;}
+.cell-face{width:100%;height:100%;object-fit:cover;object-position:center 15%;position:absolute;inset:0;border-radius:7px;}
+.cell.center .cell-face{border-radius:9px;object-position:center 10%;}
+.cell-label{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(0,0,0,0.92) 0%,rgba(0,0,0,0) 100%);padding:18px 4px 5px;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#fff;text-align:center;line-height:1.25;pointer-events:none;z-index:2;}
+.cell.center .cell-label{font-size:13px;padding:28px 8px 7px;}
+.cell-empty-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px;}
+.cell-plus{font-size:18px;color:rgba(255,255,255,0.18);line-height:1;}
+.cell.center .cell-plus{font-size:26px;color:rgba(245,200,66,0.4);}
+.cell-label-empty{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);text-align:center;line-height:1.3;}
+.cell.center .cell-label-empty{font-size:14px;color:var(--gold);}
+.name-strip{margin-top:8px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.35);min-height:18px;}
+.name-strip.has-name{color:var(--gold);}
+.outer-footer{width:calc(100vw - 16px);max-width:464px;margin:10px 8px 0;display:flex;align-items:center;justify-content:space-between;}
+.footer-name-input{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;font-family:'Barlow',sans-serif;font-size:13px;padding:7px 10px;width:150px;outline:none;}
+.footer-name-input::placeholder{color:rgba(255,255,255,0.3);}
+.btn-dl{background:var(--gold);color:#0a0f1a;border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:9px 18px;cursor:pointer;}
+.btn-dl:active{transform:scale(0.97);}
+.btn-dl.loading{opacity:0.6;pointer-events:none;}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:100;display:flex;flex-direction:column;align-items:center;overflow-y:auto;padding:16px 12px 40px;}
+.modal-backdrop.hidden{display:none;}
+.modal-header{width:100%;max-width:460px;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--gold);}
+.modal-subtitle{font-family:'Barlow',sans-serif;font-size:11px;color:var(--text-muted);margin-top:1px;}
+.btn-close{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.modal-cell-label{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:12px;text-align:center;background:rgba(245,200,66,0.1);border:1px solid rgba(245,200,66,0.3);border-radius:6px;padding:7px 14px;width:100%;max-width:460px;}
+.player-grid{width:100%;max-width:460px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.player-card{border-radius:10px;overflow:hidden;border:1.5px solid rgba(255,255,255,0.1);cursor:pointer;position:relative;aspect-ratio:3/4;background:#111;transition:border-color 0.12s,transform 0.1s;}
+.player-card:active{transform:scale(0.95);}
+.player-card.selected{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold);}
+.player-card img{width:100%;height:100%;object-fit:cover;object-position:center top;}
+.player-card-name{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(0,0,0,0.92),transparent);font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1.5px;color:var(--gold);text-align:center;padding:20px 4px 5px;}
+.player-card-prev{position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.75);border-radius:4px;font-family:'Barlow Condensed',sans-serif;font-size:9px;color:rgba(255,255,255,0.7);padding:2px 5px;letter-spacing:0.5px;}
+.player-card-check{position:absolute;top:5px;left:5px;width:22px;height:22px;background:var(--gold);border-radius:50%;display:none;align-items:center;justify-content:center;font-size:13px;color:#000;font-weight:700;}
+.player-card.selected .player-card-check{display:flex;}
+.no-img-ph{width:100%;height:100%;background:linear-gradient(135deg,#1a1f2e,#0d1117);display:flex;align-items:center;justify-content:center;}
+.no-img-ph span{font-family:'Barlow Condensed',sans-serif;font-size:13px;color:rgba(255,255,255,0.25);text-align:center;padding:8px;}
+.settings-panel{position:fixed;inset:0;background:rgba(0,0,0,0.93);z-index:200;display:flex;flex-direction:column;align-items:center;padding:20px 16px;overflow-y:auto;}
+.settings-panel.hidden{display:none;}
+.settings-header{width:100%;max-width:460px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+.settings-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--gold);}
+.settings-section{width:100%;max-width:460px;margin-bottom:18px;}
+.settings-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:7px;display:block;}
+.settings-input{width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#fff;font-family:'Barlow',sans-serif;font-size:13px;padding:9px 12px;outline:none;}
+.settings-hint{font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.4;}
+.range-row{display:flex;gap:10px;align-items:center;}
+.range-row input[type=range]{flex:1;accent-color:var(--gold);}
+.range-val{font-family:'Barlow Condensed',sans-serif;font-size:14px;color:var(--gold);min-width:36px;text-align:right;}
+.preset-row{display:flex;gap:8px;flex-wrap:wrap;}
+.preset-thumb{width:56px;height:56px;border-radius:8px;background-size:cover;background-position:center;cursor:pointer;border:2px solid transparent;transition:border-color 0.15s;}
+.preset-thumb.active{border-color:var(--gold);}
+.btn-apply{width:100%;max-width:460px;background:var(--gold);color:#0a0f1a;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:14px;cursor:pointer;margin-top:10px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="topbar-title">🏝 PSL Bingo</div>
+    <div class="topbar-sub" id="topbar-sub">PSL 20: Camiguin · Second Chance</div>
+  </div>
+  <button class="btn-settings" onclick="openSettings()">⚙️</button>
+</div>
+
+<div id="bingo-card">
+  <div class="card-bg-overlay" id="bg-overlay"></div>
+  <div class="card-inner">
+    <div class="card-header">
+      <div class="card-header-league">Pinoy Survivor League</div>
+      <div class="card-header-title">FANTASY BINGO</div>
+      <div class="card-header-season" id="card-season">PSL 20: Camiguin — Second Chance</div>
+    </div>
+    <div class="grid" id="bingo-grid"></div>
+    <div class="name-strip" id="name-strip">YOUR NAME HERE</div>
+  </div>
+</div>
+
+<div class="outer-footer">
+  <input class="footer-name-input" id="player-name" type="text" placeholder="Your name..." maxlength="28" oninput="updateNameStrip(this.value)" />
+  <button class="btn-dl" id="btn-dl" onclick="downloadCard()">⬇ Save Card</button>
+</div>
+
+<div class="modal-backdrop hidden" id="picker-modal">
+  <div class="modal-header">
+    <div>
+      <div class="modal-title">Pick a Player</div>
+      <div class="modal-subtitle">Tap to select instantly</div>
+    </div>
+    <button class="btn-close" onclick="closePicker()">✕</button>
+  </div>
+  <div class="modal-cell-label" id="picker-cell-label">Category</div>
+  <div class="player-grid" id="player-grid"></div>
+</div>
+
+<div class="settings-panel hidden" id="settings-panel">
+  <div class="settings-header">
+    <div class="settings-title">Customize Card</div>
+    <button class="btn-close" onclick="closeSettings()">✕</button>
+  </div>
+  <div class="settings-section">
+    <span class="settings-label">Background Presets</span>
+    <div class="preset-row" id="preset-row"></div>
+  </div>
+  <div class="settings-section">
+    <span class="settings-label">Custom Background URL</span>
+    <input class="settings-input" id="bg-url-input" type="text" placeholder="https://..." />
+    <p class="settings-hint">Paste a direct image URL. Best results: square or landscape photos.</p>
+  </div>
+  <div class="settings-section">
+    <span class="settings-label">Overlay Darkness</span>
+    <div class="range-row">
+      <input type="range" min="0" max="95" value="72" id="overlay-range" oninput="document.getElementById('overlay-val').textContent=this.value+'%'">
+      <span class="range-val" id="overlay-val">72%</span>
+    </div>
+    <p class="settings-hint">Higher = darker overlay, labels more readable.</p>
+  </div>
+  <div class="settings-section">
+    <span class="settings-label">Season Title</span>
+    <input class="settings-input" id="season-title-input" type="text" value="PSL 20: Camiguin — Second Chance" />
+  </div>
+  <button class="btn-apply" onclick="applySettings()">Apply Settings</button>
+</div>
+
+<script>
+const NON_CENTER_LABELS=[
+  "2nd Boot","2nd Indiv.\nImmunity Winner","2nd Place","2nd Member\nof Jury",
+  "Merger","Merger","Merger","Merger",
+  "How Many\nFinalists?","Merger","How Many\nJurors?","Merger"
+];
+
+// Replace src:"" with real hosted image URLs for each player
+const PLAYERS=[
+  {name:"Argel",     prev:"PSL 16 · 16th", src:"img/ARGEL.jpg"},
+  {name:"Ari",       prev:"PSL 17 · 17th", src:"img/ARI.jpg"},
+  {name:"Bads",      prev:"PSL 15 · 15th", src:"img/BADS.jpg"},
+  {name:"Boris",     prev:"PSL 14 · 25th", src:"img/BORIS.jpg"},
+  {name:"Chesty",    prev:"PSL 18 · 4th*", src:"img/CHESTY.jpg"},
+  {name:"Chi",       prev:"PSL 9 · 13th",  src:"img/CHI.jpg"},
+  {name:"Chynna",    prev:"PSL 16 · 14th", src:"img/CHYNNA.jpg"},
+  {name:"Elle",      prev:"PSL 17 · 13th", src:"img/ELLE.jpg"},
+  {name:"Ellis",     prev:"PSL 3 · 13th",  src:"img/ELLIS.jpg"},
+  {name:"Hazel",     prev:"PSL 18 · 3rd*", src:"img/HAZEL.jpg"},
+  {name:"Jamie",     prev:"PSL 15 · 9th",  src:"img/JAMIE.jpg"},
+  {name:"Jeremy",    prev:"PSL 17 · 8th",  src:"img/JEREMY.jpg"},
+  {name:"Karen",     prev:"PSL 14 · 3rd",  src:"img/KAREN.jpg"},
+  {name:"Khen",      prev:"PSL 11 · 2nd",  src:"img/KHEN.jpg"},
+  {name:"Kx",        prev:"PSL 19 · 12th", src:"img/KX.jpg"},
+  {name:"Lau",       prev:"PSL 14 · 2nd",  src:"img/LAU.jpg"},
+  {name:"Lee",       prev:"PSL 8 · 13th",  src:"img/LEE.jpg"},
+  {name:"Louis",     prev:"PSL 9 · 2nd",   src:"img/LOUIS.jpg"},
+  {name:"Mhill",     prev:"PSL 13 · 16th", src:"img/MHILL.jpg"},
+  {name:"Paul",      prev:"PSL 6 · 15th",  src:"img/PAUL.jpg"},
+  {name:"Renzo",     prev:"PSL 7 · 8th",   src:"img/RENZO.jpg"},
+  {name:"Waks",      prev:"PSL 15 · 11th", src:"img/WAKS.jpg"},
+];
+
+const BG_PRESETS=[
+  {label:"Camiguin",url:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Camiguin_Island.jpg/1280px-Camiguin_Island.jpg"},
+  {label:"Palawan", url:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/El_Nido%2C_Palawan_01.jpg/1280px-El_Nido%2C_Palawan_01.jpg"},
+  {label:"Siargao", url:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Siargao_Island%2C_Philippines.jpg/1280px-Siargao_Island%2C_Philippines.jpg"},
+  {label:"Boracay", url:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/BoracayBeach06.jpg/1280px-BoracayBeach06.jpg"},
+  {label:"Stars",   url:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Milky_Way_Arch.jpg/1280px-Milky_Way_Arch.jpg"},
+];
+
+let picks=new Array(12).fill(null),centerPick=null,activeCell=null,overlayAlpha=72,currentBg=BG_PRESETS[0].url,activePreset=0;
+
+function buildGrid(){
+  const grid=document.getElementById('bingo-grid');
+  grid.innerHTML='';
+  grid.style.gridTemplateRows='repeat(4,1fr)';
+  grid.style.gridTemplateColumns='repeat(4,1fr)';
+  const positions=[
+    {col:1,row:1,idx:0},{col:2,row:1,idx:1},{col:3,row:1,idx:2},{col:4,row:1,idx:3},
+    {col:1,row:2,idx:4},{center:true},
+    {col:4,row:2,idx:5},{col:1,row:3,idx:6},{col:4,row:3,idx:7},
+    {col:1,row:4,idx:8},{col:2,row:4,idx:9},{col:3,row:4,idx:10},{col:4,row:4,idx:11},
+  ];
+  positions.forEach(pos=>{
+    const cell=document.createElement('div');
+    if(pos.center){
+      cell.className='cell center';
+      cell.style.gridColumn='2/4';cell.style.gridRow='2/4';
+      renderCenterCell(cell);
+      cell.onclick=()=>openPicker(true,null);
+    } else {
+      cell.className='cell'+(picks[pos.idx]!==null?' filled':'');
+      cell.style.gridColumn=pos.col;cell.style.gridRow=pos.row;
+      renderNormalCell(cell,pos.idx);
+      cell.onclick=()=>openPicker(false,pos.idx);
+    }
+    grid.appendChild(cell);
+  });
+}
+
+function renderNormalCell(cell,idx){
+  cell.innerHTML='';
+  const pick=picks[idx];
+  if(pick!==null){
+    const p=PLAYERS[pick];
+    if(p.src){const img=document.createElement('img');img.className='cell-face';img.src=p.src;img.alt=p.name;cell.appendChild(img);}
+    else{const ph=document.createElement('div');ph.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(245,200,66,0.12);';ph.innerHTML=`<span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--gold);text-align:center;padding:4px;">${p.name}</span>`;cell.appendChild(ph);}
+    const lbl=document.createElement('div');lbl.className='cell-label';lbl.textContent=NON_CENTER_LABELS[idx];cell.appendChild(lbl);
+  } else {
+    const wrap=document.createElement('div');wrap.className='cell-empty-wrap';
+    wrap.innerHTML=`<span class="cell-plus">+</span><div class="cell-label-empty">${NON_CENTER_LABELS[idx]}</div>`;
+    cell.appendChild(wrap);
+  }
+}
+
+function renderCenterCell(cell){
+  cell.innerHTML='';
+  if(centerPick!==null){
+    const p=PLAYERS[centerPick];cell.classList.add('filled');
+    if(p.src){const img=document.createElement('img');img.className='cell-face';img.src=p.src;img.alt=p.name;cell.appendChild(img);}
+    else{const ph=document.createElement('div');ph.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(245,200,66,0.15);';ph.innerHTML=`<span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold);text-align:center;padding:8px;">${p.name}</span>`;cell.appendChild(ph);}
+    const lbl=document.createElement('div');lbl.className='cell-label';lbl.innerHTML='⭐ ULTIMATE WINNER PICK';cell.appendChild(lbl);
+  } else {
+    cell.classList.remove('filled');
+    const wrap=document.createElement('div');wrap.className='cell-empty-wrap';
+    wrap.innerHTML=`<span class="cell-plus">★</span><div class="cell-label-empty">ULTIMATE<br>WINNER PICK</div>`;
+    cell.appendChild(wrap);
+  }
+}
+
+function openPicker(isCenter,idx){
+  activeCell={isCenter,idx};
+  document.getElementById('picker-cell-label').textContent=isCenter?'⭐ ULTIMATE WINNER PICK':NON_CENTER_LABELS[idx];
+  buildPlayerGrid();
+  const modal=document.getElementById('picker-modal');
+  modal.classList.remove('hidden');modal.scrollTop=0;
+}
+function closePicker(){document.getElementById('picker-modal').classList.add('hidden');activeCell=null;}
+
+function buildPlayerGrid(){
+  const grid=document.getElementById('player-grid');grid.innerHTML='';
+  const currentPick=activeCell.isCenter?centerPick:picks[activeCell.idx];
+  PLAYERS.forEach((p,i)=>{
+    const card=document.createElement('div');
+    card.className='player-card'+(currentPick===i?' selected':'');
+    if(p.src){const img=document.createElement('img');img.src=p.src;img.alt=p.name;img.loading='lazy';card.appendChild(img);}
+    else{const ph=document.createElement('div');ph.className='no-img-ph';ph.innerHTML='<span>No Image</span>';card.appendChild(ph);}
+    const nameEl=document.createElement('div');nameEl.className='player-card-name';nameEl.textContent=p.name;card.appendChild(nameEl);
+    const prevEl=document.createElement('div');prevEl.className='player-card-prev';prevEl.textContent=p.prev;card.appendChild(prevEl);
+    const check=document.createElement('div');check.className='player-card-check';check.textContent='✓';card.appendChild(check);
+    // INSTANT pick — no confirm button
+    card.onclick=()=>{
+      const newPick=(currentPick===i)?null:i;
+      if(activeCell.isCenter)centerPick=newPick; else picks[activeCell.idx]=newPick;
+      buildGrid();closePicker();
+    };
+    grid.appendChild(card);
+  });
+}
+
+function updateNameStrip(val){
+  const strip=document.getElementById('name-strip');
+  if(val.trim()){strip.textContent=val.trim().toUpperCase();strip.classList.add('has-name');}
+  else{strip.textContent='YOUR NAME HERE';strip.classList.remove('has-name');}
+}
+
+// DOWNLOAD — pure canvas, no external lib needed
+async function downloadCard(){
+  const btn=document.getElementById('btn-dl');
+  btn.textContent='⏳ Saving...';btn.classList.add('loading');
+  const nameVal=(document.getElementById('player-name').value.trim()||'').toUpperCase();
+  const card=document.getElementById('bingo-card');
+  const W=card.offsetWidth,H=card.offsetHeight,DPR=2;
+  const canvas=document.createElement('canvas');
+  canvas.width=W*DPR;canvas.height=H*DPR;
+  const ctx=canvas.getContext('2d');ctx.scale(DPR,DPR);
+
+  function loadImg(src){
+    return new Promise(res=>{
+      if(!src){res(null);return;}
+      const img=new Image();img.crossOrigin='anonymous';
+      img.onload=()=>res(img);img.onerror=()=>res(null);
+      img.src=src+(src.includes('?')?'&':'?')+'_cb='+Date.now();
+    });
+  }
+  function rr(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();}
+  function wrapTxt(ctx,txt,cx,y,maxW,lh){
+    const words=txt.replace(/\\n/g,' ').split(/\s+/);let line='';const lines=[];
+    for(const w of words){const t=line?line+' '+w:w;if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=w;}else line=t;}
+    if(line)lines.push(line);
+    const th=lines.length*lh;
+    lines.forEach((l,i)=>ctx.fillText(l,cx,y-th/2+i*lh+lh*0.8));
+  }
+
+  // 1. Background
+  const bgImg=await loadImg(currentBg);
+  ctx.save();rr(ctx,0,0,W,H,16);ctx.clip();
+  if(bgImg){const sc=Math.max(W/bgImg.naturalWidth,H/bgImg.naturalHeight);const dw=bgImg.naturalWidth*sc,dh=bgImg.naturalHeight*sc;ctx.drawImage(bgImg,(W-dw)/2,(H-dh)/2,dw,dh);}
+  else{ctx.fillStyle='#0a0f1a';ctx.fillRect(0,0,W,H);}
+  ctx.fillStyle=`rgba(5,10,20,${(overlayAlpha/100).toFixed(2)})`;ctx.fillRect(0,0,W,H);
+  ctx.restore();
+  ctx.strokeStyle='rgba(245,200,66,0.45)';ctx.lineWidth=1.5;rr(ctx,0,0,W,H,16);ctx.stroke();
+
+  // 2. Header
+  const HY=12;ctx.textAlign='center';
+  ctx.fillStyle='rgba(245,200,66,0.7)';ctx.font='600 10px "Barlow Condensed",sans-serif';ctx.fillText('PINOY SURVIVOR LEAGUE',W/2,HY+12);
+  ctx.fillStyle='#F5C842';ctx.font='900 32px "Bebas Neue",sans-serif';ctx.fillText('FANTASY BINGO',W/2,HY+42);
+  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='600 10px "Barlow Condensed",sans-serif';ctx.fillText(document.getElementById('card-season').textContent,W/2,HY+56);
+
+  // 3. Grid
+  const GT=HY+66,GAP=5,PAD=10;
+  const gw=W-PAD*2,cs=(gw-GAP*3)/4;
+  const cps=[
+    {c:0,r:0,w:cs,h:cs,idx:0,center:false},{c:1,r:0,w:cs,h:cs,idx:1,center:false},
+    {c:2,r:0,w:cs,h:cs,idx:2,center:false},{c:3,r:0,w:cs,h:cs,idx:3,center:false},
+    {c:0,r:1,w:cs,h:cs,idx:4,center:false},{c:1,r:1,w:cs*2+GAP,h:cs*2+GAP,idx:null,center:true},
+    {c:3,r:1,w:cs,h:cs,idx:5,center:false},{c:0,r:2,w:cs,h:cs,idx:6,center:false},
+    {c:3,r:2,w:cs,h:cs,idx:7,center:false},
+    {c:0,r:3,w:cs,h:cs,idx:8,center:false},{c:1,r:3,w:cs,h:cs,idx:9,center:false},
+    {c:2,r:3,w:cs,h:cs,idx:10,center:false},{c:3,r:3,w:cs,h:cs,idx:11,center:false},
+  ];
+
+  for(const cp of cps){
+    const x=PAD+cp.c*(cs+GAP),y=GT+cp.r*(cs+GAP),cw=cp.w,ch=cp.h;
+    const pick=cp.center?centerPick:picks[cp.idx];
+    ctx.save();rr(ctx,x,y,cw,ch,8);ctx.clip();
+    if(pick!==null){
+      const p=PLAYERS[pick];
+      const fi=p.src?await loadImg(p.src):null;
+      if(fi){const sc=Math.max(cw/fi.naturalWidth,ch/fi.naturalHeight);const dw=fi.naturalWidth*sc,dh=fi.naturalHeight*sc;ctx.drawImage(fi,x+(cw-dw)/2,y,dw,dh);}
+      else{ctx.fillStyle='rgba(245,200,66,0.12)';ctx.fillRect(x,y,cw,ch);ctx.fillStyle='#F5C842';ctx.font=`700 ${cp.center?16:11}px "Bebas Neue",sans-serif`;ctx.textAlign='center';ctx.fillText(p.name,x+cw/2,y+ch/2+4);}
+      const grd=ctx.createLinearGradient(0,y+ch*0.5,0,y+ch);grd.addColorStop(0,'rgba(0,0,0,0)');grd.addColorStop(1,'rgba(0,0,0,0.92)');ctx.fillStyle=grd;ctx.fillRect(x,y,cw,ch);
+      ctx.fillStyle='#fff';const fs=cp.center?12:9.5;ctx.font=`700 ${fs}px "Barlow Condensed",sans-serif`;ctx.textAlign='center';
+      const ltxt=cp.center?'ULTIMATE WINNER PICK':NON_CENTER_LABELS[cp.idx];
+      wrapTxt(ctx,ltxt,x+cw/2,y+ch-4,cw-6,fs+3);
+    } else {
+      ctx.fillStyle=cp.center?'rgba(245,200,66,0.18)':'rgba(8,12,22,0.75)';ctx.fillRect(x,y,cw,ch);
+      ctx.fillStyle=cp.center?'rgba(245,200,66,0.4)':'rgba(255,255,255,0.18)';ctx.font=`${cp.center?22:16}px sans-serif`;ctx.textAlign='center';ctx.fillText(cp.center?'★':'+',x+cw/2,y+ch/2+2);
+      ctx.fillStyle=cp.center?'#F5C842':'rgba(255,255,255,0.5)';const fs=cp.center?12:9.5;ctx.font=`700 ${fs}px "Barlow Condensed",sans-serif`;
+      wrapTxt(ctx,cp.center?'ULTIMATE WINNER PICK':NON_CENTER_LABELS[cp.idx],x+cw/2,y+ch/2+16,cw-6,fs+3);
+    }
+    ctx.restore();
+    ctx.strokeStyle=(pick!==null||cp.center)?'#F5C842':'rgba(245,200,66,0.3)';ctx.lineWidth=cp.center?2:1;
+    rr(ctx,x,y,cw,ch,8);ctx.stroke();
+  }
+
+  // 4. Name strip
+  if(nameVal){
+    ctx.textAlign='center';ctx.fillStyle='#F5C842';ctx.font='700 13px "Barlow Condensed",sans-serif';
+    ctx.fillText(nameVal,W/2,GT+cs*4+GAP*3+22);
+  }
+
+  // 5. Trigger download
+  btn.textContent='⬇ Save Card';btn.classList.remove('loading');
+  try{
+    canvas.toBlob(blob=>{
+      if(!blob){fallbackOpen(canvas);return;}
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;a.download=`psl-bingo-${(nameVal||'card').replace(/\s+/g,'-').toLowerCase()}.png`;
+      document.body.appendChild(a);a.click();
+      setTimeout(()=>{URL.revokeObjectURL(url);document.body.removeChild(a);},1000);
+    },'image/png');
+  }catch(e){fallbackOpen(canvas);}
+}
+function fallbackOpen(canvas){
+  const w=window.open('','_blank');
+  if(w){w.document.write('<img src="'+canvas.toDataURL()+'" style="max-width:100%;display:block">');w.document.title='PSL Bingo Card';}
+  else alert('Allow pop-ups or take a screenshot to save your card.');
+}
+
+function openSettings(){buildPresetThumbs();document.getElementById('settings-panel').classList.remove('hidden');document.getElementById('bg-url-input').value=currentBg;document.getElementById('overlay-range').value=overlayAlpha;document.getElementById('overlay-val').textContent=overlayAlpha+'%';}
+function closeSettings(){document.getElementById('settings-panel').classList.add('hidden');}
+function buildPresetThumbs(){const row=document.getElementById('preset-row');row.innerHTML='';BG_PRESETS.forEach((bg,i)=>{const th=document.createElement('div');th.className='preset-thumb'+(i===activePreset?' active':'');th.style.backgroundImage=`url(${bg.url})`;th.title=bg.label;th.onclick=()=>{activePreset=i;document.getElementById('bg-url-input').value=bg.url;buildPresetThumbs();};row.appendChild(th);});}
+function applySettings(){const url=document.getElementById('bg-url-input').value.trim();overlayAlpha=parseInt(document.getElementById('overlay-range').value);const season=document.getElementById('season-title-input').value;if(url){currentBg=url;document.getElementById('bingo-card').style.backgroundImage=`url(${url})`;}document.getElementById('bg-overlay').style.background=`rgba(5,10,20,${(overlayAlpha/100).toFixed(2)})`;document.getElementById('card-season').textContent=season;document.getElementById('topbar-sub').textContent=season;closeSettings();}
+
+document.getElementById('bingo-card').style.backgroundImage=`url(${currentBg})`;
+buildGrid();buildPresetThumbs();
+</script>
+</body>
+</html>
