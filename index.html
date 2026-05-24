@@ -53,7 +53,7 @@ body{font-family:'Barlow',sans-serif;background:#0a0f1a;min-height:100vh;display
 /* TOPBAR */
 .topbar{width:100%;max-width:480px;display:flex;align-items:center;padding:12px 14px 8px;}
 .topbar-left{display:flex;align-items:center;gap:9px;}
-.topbar-logo{width:36px;height:36px;border-radius:50%;object-fit:cover;}
+.topbar-logo{width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.5px solid var(--accent-border);}
 
 .topbar-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--accent);}
 .topbar-sub{font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px;}
@@ -80,7 +80,7 @@ body{font-family:'Barlow',sans-serif;background:#0a0f1a;min-height:100vh;display
 
 /* CARD HEADER */
 .card-header{text-align:center;margin-bottom:8px;}
-.card-header-logo{width:32px;height:32px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 4px;}
+.card-header-logo{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.5px solid var(--accent-border);display:block;margin:0 auto 4px;}
 .card-header-league{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;opacity:0.75;}
 .card-header-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:4px;color:var(--accent);line-height:1;}
 .card-header-season{font-family:'Barlow Condensed',sans-serif;font-size:9px;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;}
@@ -142,8 +142,8 @@ body{font-family:'Barlow',sans-serif;background:#0a0f1a;min-height:100vh;display
 .cell.center .cell-plus{font-size:22px;color:rgba(255,255,255,0.25);}
 .cell-label-empty{
   font-family:'Barlow Condensed',sans-serif;
-  font-size:14px;font-weight:700;letter-spacing:0.3px;
-  text-transform:uppercase;color:rgba(255,255,255,0.75);
+  font-size:9px;font-weight:700;letter-spacing:0.3px;
+  text-transform:uppercase;color:rgba(255,255,255,0.45);
   text-align:center;line-height:1.2;
   word-break:break-word;
 }
@@ -221,7 +221,7 @@ body{font-family:'Barlow',sans-serif;background:#0a0f1a;min-height:100vh;display
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-left">
-    <img class="topbar-logo" src="img/logo.png" alt="PSL Logo" onerror="this.style.display='none'">
+    <img class="topbar-logo" src="img/logo.jpg" alt="PSL Logo" onerror="this.style.display='none'">
     <div>
       <div class="topbar-title">PSL Bingo</div>
       <div class="topbar-sub" id="topbar-sub">PSL 20: Camiguin · Second Chance</div>
@@ -255,7 +255,8 @@ body{font-family:'Barlow',sans-serif;background:#0a0f1a;min-height:100vh;display
   <div class="card-bg-overlay" id="bg-overlay"></div>
   <div class="card-inner">
     <div class="card-header">
-      <img class="card-header-logo" src="img/logo.png" alt="PSL" onerror="this.style.display='none'">
+      <img class="card-header-logo" src="img/logo.jpg" alt="PSL" onerror="this.style.display='none'">
+      <div class="card-header-league">Pinoy Survivor League</div>
       <div class="card-header-title" id="card-main-title">PSL BINGO CARD</div>
       <div class="card-header-season" id="card-season">PSL 20: Camiguin — Second Chance</div>
     </div>
@@ -307,9 +308,9 @@ const BG_PRESETS=[
 ];
 
 const NON_CENTER_LABELS=[
-  "2nd Member\nof The Jury","2nd Boot","2nd Boat Marooning","2nd Indiv.\nImmunity Winner",
-  "2nd Idol Play","2nd to Find\nAn Advantage","2nd Video\nConfessional","2nd Person\nto Cry",
-  "Merger","Day 38","2nd Place","Merger"
+  "2nd Boot","2nd Indiv.\nImmunity Winner","2nd Place","2nd Member\nof Jury",
+  "Merger","Merger","Merger","Merger",
+  "Merger","How Many\nFinalists?","How Many\nJurors?","Merger"
 ];
 
 // ── PLAYERS — add team:"yellow" or team:"red" per cast ──
@@ -441,7 +442,9 @@ function renderCenterCell(cell){
 
 // ── NAME ──
 function updateName(val){
-  document.getElementById('player-name').style.border = '';
+  const nameInput=document.getElementById('player-name');
+  nameInput.style.border='';
+  nameInput.placeholder='Enter your name...';
   playerName=val.trim();
   const strip=document.getElementById('name-strip');
   const titleEl=document.getElementById('card-main-title');
@@ -497,17 +500,17 @@ function isMobile(){return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.use
 // with enough padding so it never clips
 // ─────────────────────────────────────────────
 async function generateImage(){
-  // ADD THIS — bail out if no name
-  const nameInput = document.getElementById('player-name');
-  if (!nameInput.value.trim()) {
+  const btn=document.getElementById('btn-generate');
+
+  // ── Name required ──
+  const nameInput=document.getElementById('player-name');
+  if(!nameInput.value.trim()){
+    nameInput.style.border='1.5px solid #E8433A';
+    nameInput.placeholder='Name is required!';
     nameInput.focus();
-    nameInput.style.border = '1.5px solid #E8433A';
-    btn.textContent = '⬇ Save Card';
-    btn.classList.remove('loading');
     return;
   }
 
-  const btn=document.getElementById('btn-generate');
   btn.textContent='\u23F3 Generating...';btn.classList.add('loading');
 
   // Temporarily remove scale transform so we measure true DOM dimensions
@@ -516,8 +519,9 @@ async function generateImage(){
   const savedMargin=scaler.style.marginBottom;
   scaler.style.transform='';
   scaler.style.marginBottom='';
-  // Force reflow
   void scaler.offsetHeight;
+
+  try {
 
   // Read computed accent color from CSS variable
   const computedAccent=getComputedStyle(document.documentElement)
@@ -538,9 +542,16 @@ async function generateImage(){
     return new Promise(res=>{
       if(!src){res(null);return;}
       const img=new Image();
-      img.crossOrigin='anonymous';
+      // Only set crossOrigin for external URLs — setting it on same-origin
+      // local files (GitHub Pages) triggers unnecessary CORS preflight that can hang
+      const isExternal=src.startsWith('http')&&!src.startsWith(location.origin);
+      if(isExternal) img.crossOrigin='anonymous';
       img.onload=()=>res(img);
       img.onerror=()=>res(null);
+      // Safety timeout — if image doesn't load in 6s, resolve null and move on
+      const t=setTimeout(()=>res(null),6000);
+      img.onload=()=>{clearTimeout(t);res(img);};
+      img.onerror=()=>{clearTimeout(t);res(null);};
       img.src=src.startsWith('data:')?src:src+(src.includes('?')?'&':'?')+'_t='+Date.now();
     });
   }
@@ -601,7 +612,7 @@ async function generateImage(){
   const nameBottom=nameTop+relH(nameEl);
 
   // Logo
-  const logoImg=await loadImg('img/logo.png');
+  const logoImg=await loadImg('img/logo.jpg');
   const logoSize=24,logoX=(W-logoSize)/2,logoY=relY(headerEl)+2;
   if(logoImg){
     ctx.save();
@@ -609,9 +620,9 @@ async function generateImage(){
     ctx.clip();ctx.drawImage(logoImg,logoX,logoY,logoSize,logoSize);
     ctx.restore();
     // circle border
-    // ctx.strokeStyle=computedAccent;ctx.globalAlpha=0.3;ctx.lineWidth=1;
-    // ctx.beginPath();ctx.arc(logoX+logoSize/2,logoY+logoSize/2,logoSize/2,0,Math.PI*2);ctx.stroke();
-    // ctx.globalAlpha=1;
+    ctx.strokeStyle=computedAccent;ctx.globalAlpha=0.3;ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(logoX+logoSize/2,logoY+logoSize/2,logoSize/2,0,Math.PI*2);ctx.stroke();
+    ctx.globalAlpha=1;
   }
 
   const leagueText=card.querySelector('.card-header-league').textContent;
@@ -724,13 +735,21 @@ async function generateImage(){
   // center vertically in the name strip area
   ctx.fillText(dispName,W/2,nameTop+(relH(nameEl)/2)+4);
 
-  // 5. Show preview — restore scale first
-  scaler.style.transform=savedTransform;
-  scaler.style.marginBottom=savedMargin;
+    // 5. Show preview — restore scale first
+    scaler.style.transform=savedTransform;
+    scaler.style.marginBottom=savedMargin;
+    currentCanvasDataUrl=canvas.toDataURL('image/png');
+    btn.textContent='\u2B07 Save Card';btn.classList.remove('loading');
+    showPreview(currentCanvasDataUrl);
 
-  currentCanvasDataUrl=canvas.toDataURL('image/png');
-  btn.textContent='\u2B07 Save Card';btn.classList.remove('loading');
-  showPreview(currentCanvasDataUrl);
+  } catch(err) {
+    // Always restore state so the button never stays stuck
+    scaler.style.transform=savedTransform;
+    scaler.style.marginBottom=savedMargin;
+    btn.textContent='\u2B07 Save Card';btn.classList.remove('loading');
+    console.error('generateImage error:', err);
+    alert('Something went wrong generating the card. Please try again.');
+  }
 }
 
 function showPreview(dataUrl){
