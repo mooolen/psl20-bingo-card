@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>PSL Bingo Card</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500;600&display=swap');
+
+/* ── THEME VARIABLES (swapped by team color) ── */
+:root{
+  --accent:#ffffff;
+  --accent-dim:rgba(255,255,255,0.30);
+  --accent-border:rgba(255,255,255,0.25);
+  --accent-bg:rgba(255,255,255,0.12);
+  --cell-bg:rgba(8,12,22,0.78);
+  --text-muted:rgba(255,255,255,0.55);
+  --center-bg:rgba(255,255,255,0.10);
+}
+/* Yellow tribe winner */
+body.theme-yellow{
+  --accent:#F5C842;
+  --accent-dim:rgba(245,200,66,0.35);
+  --accent-border:rgba(245,200,66,0.30);
+  --accent-bg:rgba(245,200,66,0.14);
+  --center-bg:rgba(245,200,66,0.16);
+}
+/* Red tribe winner */
+body.theme-red{
+  --accent:#E8433A;
+  --accent-dim:rgba(232,67,58,0.40);
+  --accent-border:rgba(232,67,58,0.30);
+  --accent-bg:rgba(232,67,58,0.14);
+  --center-bg:rgba(232,67,58,0.16);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Barlow',sans-serif;background:#0a0f1a;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:0 0 80px;overflow-x:hidden;}
+
+/* ── CARD SCALE WRAPPER ──
+   The card sits inside this div. JS sets --card-scale based on
+   available viewport space so the card always fits on screen.
+   Controls above/below are NOT scaled — only #bingo-card. */
+#card-scaler{
+  width:calc(100vw - 16px);
+  max-width:464px;
+  /* origin top-center so it scales down toward the top */
+  transform-origin:top center;
+  /* JS will set transform: scale(var(--card-scale)) */
+  /* margin-bottom compensates for the space lost by scaling */
+}
+
+/* TOPBAR */
+.topbar{width:100%;max-width:480px;display:flex;align-items:center;padding:12px 14px 8px;}
+.topbar-left{display:flex;align-items:center;gap:9px;}
+.topbar-logo{width:36px;height:36px;border-radius:50%;object-fit:cover;}
+
+.topbar-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--accent);}
+.topbar-sub{font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px;}
+
+/* BG STRIP */
+.bg-strip{width:100%;max-width:480px;padding:0 14px 10px;display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow-x:auto;}
+.bg-strip-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);flex-shrink:0;white-space:nowrap;}
+.bg-thumb{width:48px;height:48px;background-size:cover;background-position:center;cursor:pointer;border:2px solid transparent;transition:border-color 0.15s;flex-shrink:0;}
+.bg-thumb.active{border-color:var(--accent);}
+.bg-thumb-upload{width:48px;height:48px;background:rgba(255,255,255,0.06);border:1.5px dashed rgba(255,255,255,0.22);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:1px;flex-shrink:0;}
+.bg-thumb-upload span{font-size:16px;}
+.bg-thumb-upload p{font-family:'Barlow Condensed',sans-serif;font-size:8px;color:rgba(255,255,255,0.35);letter-spacing:0.5px;text-transform:uppercase;text-align:center;}
+
+/* OVERLAY SLIDER on main screen */
+.overlay-strip{width:100%;max-width:480px;padding:0 14px 10px;display:flex;align-items:center;gap:10px;}
+.overlay-strip-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);flex-shrink:0;white-space:nowrap;}
+.overlay-strip input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
+.overlay-strip-val{font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--accent);min-width:32px;text-align:right;}
+
+/* BINGO CARD — fills the scaler wrapper */
+#bingo-card{width:100%;background-size:cover;background-position:center;overflow:hidden;position:relative;}
+.card-bg-overlay{position:absolute;inset:0;z-index:0;background:rgba(5,10,20,0.72);}
+.card-inner{position:relative;z-index:1;padding:10px 9px 9px;}
+
+/* CARD HEADER */
+.card-header{text-align:center;margin-bottom:8px;}
+.card-header-logo{width:32px;height:32px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 4px;}
+.card-header-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:4px;color:var(--accent);line-height:1;}
+.card-header-season{font-family:'Barlow Condensed',sans-serif;font-size:9px;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;}
+
+/* CELL base */
+.cell{
+  aspect-ratio:1;
+  background:var(--cell-bg);
+  border:1px solid var(--accent-border);
+  cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+  transition:border-color 0.15s;
+  -webkit-user-select:none;user-select:none;
+}
+.cell:active{transform:scale(0.95);}
+.cell.filled{border-color:var(--accent);border-width:1.5px;}
+.cell.center{
+  grid-column:2/4;grid-row:2/4;
+  aspect-ratio:unset;
+  background:var(--center-bg);
+  border:2px solid var(--accent);
+}
+
+/* Face image — zoomed on face (top-biased) */
+.cell-face{
+  width:100%;height:100%;
+  object-fit:cover;
+  object-position:center 12%;
+  position:absolute;inset:0;
+}
+.cell.center .cell-face{object-position:center 8%;}
+
+/* Label on filled cell — pinned to bottom */
+.cell-label{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(to top,rgba(0,0,0,0.94) 0%,rgba(0,0,0,0) 100%);
+  padding:20px 3px 3px;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:9px;font-weight:700;
+  letter-spacing:0.3px;text-transform:uppercase;
+  color:#fff;text-align:center;line-height:1.15;
+  pointer-events:none;z-index:2;
+  /* key fix: no overflow, text stays inside */
+  word-break:break-word;
+  hyphens:auto;
+}
+.cell.center .cell-label{font-size:11px;padding:26px 5px 5px;}
+
+/* Empty cell */
+.cell-empty-wrap{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;padding:4px;width:100%;height:100%;
+}
+.cell-plus{font-size:14px;color:rgba(255,255,255,0.16);line-height:1;}
+.cell.center .cell-plus{font-size:22px;color:rgba(255,255,255,0.25);}
+.cell-label-empty{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:12px;font-weight:700;letter-spacing:0.3px;
+  text-transform:uppercase;color:rgba(255,255,255,0.75);
+  text-align:center;line-height:1.2;
+  word-break:break-word;
+}
+.cell.center .cell-label-empty{font-size:12px;color:var(--accent);}
+
+/* NAME STRIP */
+.name-strip{
+  margin-top:7px;padding:4px 8px;
+  text-align:center;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;
+  color:rgba(255,255,255,0.25);min-height:22px;
+  border-top:1px solid var(--accent-border);
+}
+.name-strip.has-name{color:var(--accent);}
+
+/* OUTER FOOTER — matches card width */
+.outer-footer{width:calc(100vw - 16px);max-width:464px;margin:10px 8px 0;display:flex;align-items:center;gap:8px;}
+.footer-name-input{
+  background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.18);
+  color:#fff;font-family:'Barlow',sans-serif;font-size:13px;
+  padding:9px 12px;flex:1;outline:none;
+}
+.footer-name-input::placeholder{color:rgba(255,255,255,0.28);}
+.btn-generate{
+  background:var(--accent);color:#0a0f1a;border:none;
+  font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;
+  padding:10px 18px;cursor:pointer;flex-shrink:0;
+}
+.btn-generate:active{opacity:0.85;}
+.btn-generate.loading{opacity:0.5;pointer-events:none;}
+
+/* PICKER MODAL */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.94);z-index:100;display:flex;flex-direction:column;align-items:center;overflow-y:auto;padding:14px 12px 40px;}
+.modal-backdrop.hidden{display:none;}
+.modal-header{width:100%;max-width:460px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--accent);}
+.modal-subtitle{font-family:'Barlow',sans-serif;font-size:11px;color:var(--text-muted);margin-top:1px;}
+.btn-close{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.modal-cell-label{
+  font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;color:var(--accent);
+  margin-bottom:10px;text-align:center;
+  background:var(--accent-bg);border:1px solid var(--accent-border);
+  padding:7px 14px;width:100%;max-width:460px;
+}
+.player-grid{width:100%;max-width:460px;display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.player-card{overflow:hidden;border:1.5px solid rgba(255,255,255,0.1);cursor:pointer;position:relative;aspect-ratio:3/4;background:#111;transition:border-color 0.12s,transform 0.1s;}
+.player-card:active{transform:scale(0.95);}
+.player-card.selected{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent);}
+.player-card img{width:100%;height:100%;object-fit:cover;object-position:center top;}
+.player-card-name{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(0,0,0,0.92),transparent);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1.5px;color:var(--accent);text-align:center;padding:18px 4px 5px;}
+.player-card-prev{position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.75);font-family:'Barlow Condensed',sans-serif;font-size:9px;color:rgba(255,255,255,0.7);padding:2px 5px;letter-spacing:0.5px;}
+.player-card-check{position:absolute;top:5px;left:5px;width:22px;height:22px;background:var(--accent);border-radius:50%;display:none;align-items:center;justify-content:center;font-size:13px;color:#000;font-weight:700;}
+.player-card.selected .player-card-check{display:flex;}
+.no-img-ph{width:100%;height:100%;background:linear-gradient(135deg,#1a1f2e,#0d1117);display:flex;align-items:center;justify-content:center;}
+.no-img-ph span{font-family:'Barlow Condensed',sans-serif;font-size:12px;color:rgba(255,255,255,0.22);text-align:center;padding:8px;}
+
+/* PREVIEW MODAL */
+.preview-modal{position:fixed;inset:0;background:rgba(0,0,0,0.97);z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px 16px 30px;overflow-y:auto;}
+.preview-modal.hidden{display:none;}
+.preview-header{width:100%;max-width:480px;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.preview-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--accent);}
+.save-instruction{width:100%;max-width:480px;background:var(--accent-bg);border:1px solid var(--accent-border);padding:10px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;}
+.save-instruction-icon{font-size:20px;flex-shrink:0;margin-top:1px;}
+.save-instruction-text{font-family:'Barlow',sans-serif;font-size:13px;color:rgba(255,255,255,0.85);line-height:1.5;}
+.save-instruction-text strong{color:var(--accent);font-weight:600;}
+#preview-img{width:100%;max-width:480px;display:block;border:1px solid var(--accent-border);}
+.btn-dl-desktop{width:100%;max-width:480px;margin-top:14px;background:var(--accent);color:#0a0f1a;border:none;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:13px;cursor:pointer;display:none;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <img class="topbar-logo" src="img/logo.png" alt="PSL Logo" onerror="this.style.display='none'">
+    <div>
+      <div class="topbar-title">PSL Bingo</div>
+      <div class="topbar-sub" id="topbar-sub">PSL 20: Camiguin · Second Chance</div>
+    </div>
+  </div>
+</div>
+
+<!-- BG PRESETS STRIP -->
+<div class="bg-strip">
+  <span class="bg-strip-label">Background</span>
+  <div class="bg-thumb active" id="bg-thumb-0" style="background-image:url('img/bg/bg-1.jpg')" onclick="selectPreset(0)" title="Blood Moon"></div>
+  <div class="bg-thumb" id="bg-thumb-1" style="background-image:url('img/bg/bg-2.jpg')" onclick="selectPreset(1)" title="Salty Ember"></div>
+  <div class="bg-thumb" id="bg-thumb-2" style="background-image:url('img/bg/bg-3.jpg')" onclick="selectPreset(2)" title="Hibok"></div>
+  <div class="bg-thumb" id="bg-thumb-3" style="background-image:url('img/bg/bg-4.jpg')" onclick="selectPreset(3)" title="Vulcan"></div>
+  <div class="bg-thumb-upload" onclick="triggerBgUpload()" title="Upload your own">
+    <span>📷</span><p>Upload</p>
+  </div>
+  <input type="file" id="bg-file-input" accept="image/*" style="display:none" onchange="handleBgUpload(this)">
+</div>
+
+<!-- OVERLAY SLIDER: 100% = fully visible background -->
+<div class="overlay-strip">
+  <span class="overlay-strip-label">Background</span>
+  <input type="range" min="0" max="100" value="28" id="overlay-range" oninput="liveOverlay(this.value)">
+  <span class="overlay-strip-val" id="overlay-val">28%</span>
+</div>
+
+<!-- BINGO CARD (inside auto-scaler) -->
+<div id="card-scaler">
+<div id="bingo-card">
+  <div class="card-bg-overlay" id="bg-overlay"></div>
+  <div class="card-inner">
+    <div class="card-header">
+      <img class="card-header-logo" src="img/logo.png" alt="PSL" onerror="this.style.display='none'">
+      <div class="card-header-title" id="card-main-title">PSL BINGO CARD</div>
+      <div class="card-header-season" id="card-season">PSL 20: Camiguin — Second Chance</div>
+    </div>
+    <div class="grid" id="bingo-grid"></div>
+    <div class="name-strip" id="name-strip">— PICK YOUR PLAYERS —</div>
+  </div><!-- /#card-inner -->
+</div><!-- /#bingo-card -->
+</div><!-- /#card-scaler -->
+<div class="outer-footer">
+  <input class="footer-name-input" id="player-name" type="text" placeholder="Enter your name..." maxlength="28" oninput="updateName(this.value)" />
+  <button class="btn-generate" id="btn-generate" onclick="generateImage()">⬇ Save Card</button>
+</div>
+
+<!-- PLAYER PICKER MODAL -->
+<div class="modal-backdrop hidden" id="picker-modal">
+  <div class="modal-header">
+    <div><div class="modal-title">Pick a Player</div><div class="modal-subtitle">Tap to assign instantly</div></div>
+    <button class="btn-close" onclick="closePicker()">✕</button>
+  </div>
+  <div class="modal-cell-label" id="picker-cell-label">Category</div>
+  <div class="player-grid" id="player-grid"></div>
+</div>
+
+<!-- IMAGE PREVIEW MODAL -->
+<div class="preview-modal hidden" id="preview-modal">
+  <div class="preview-header">
+    <div class="preview-title">Your Bingo Card</div>
+    <button class="btn-close" onclick="closePreview()">✕</button>
+  </div>
+  <div class="save-instruction">
+    <div class="save-instruction-icon">💡</div>
+    <div class="save-instruction-text" id="save-text">
+      <strong>Hold the image</strong> then tap <strong>"Save to Photos"</strong>.
+    </div>
+  </div>
+  <img id="preview-img" src="" alt="Your PSL Bingo Card" />
+  <button class="btn-dl-desktop" id="btn-dl-desktop" onclick="desktopDownload()">⬇ Download Image</button>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// TEAM COLORS — hard-coded per player
+// teams: "yellow" | "red" | null (neutral/no theme shift)
+// ─────────────────────────────────────────────
+const BG_PRESETS=[
+  {url:'img/bg/bg-1.jpg',label:'Blood Moon'},
+  {url:'img/bg/bg-2.jpg',label:'Salty Ember'},
+  {url:'img/bg/bg-3.jpg',label:'Hibok'},
+  {url:'img/bg/bg-4.jpg',label:'Vulcan'},
+];
+
+const NON_CENTER_LABELS=[
+  "2nd Member\nof The Jury","2nd Boot","2nd Boat Marooning","2nd Indiv.\nImmunity Winner",
+  "2nd Idol Play","2nd to Find\nAn Advantage","2nd Video\nConfessional","2nd Person\nto Cry",
+  "Merger","Day 38","2nd Place","Merger"
+];
+
+// ── PLAYERS — add team:"yellow" or team:"red" per cast ──
+// Assign teams based on actual PSL 20 tribe colors
+const PLAYERS=[
+  {name:"Argel",  prev:"PSL 16 · 16th", src:"img/cards/ARGEL.jpg",   team:"yellow"},
+  {name:"Ari",    prev:"PSL 17 · 17th", src:"img/cards/ARI.jpg",     team:"red"},
+  {name:"Bads",   prev:"PSL 15 · 15th", src:"img/cards/BADS.jpg",    team:"yellow"},
+  {name:"Boris",  prev:"PSL 14 · 25th", src:"img/cards/BORIS.jpg",   team:"red"},
+  {name:"Chesty", prev:"PSL 18 · 4th*", src:"img/cards/CHESTY.jpg",  team:"yellow"},
+  {name:"Chi",    prev:"PSL 9 · 13th",  src:"img/cards/CHI.jpg",     team:"red"},
+  {name:"Chynna", prev:"PSL 16 · 14th", src:"img/cards/CHYNNA.jpg",  team:"yellow"},
+  {name:"Elle",   prev:"PSL 17 · 13th", src:"img/cards/ELLE.jpg",    team:"red"},
+  {name:"Ellis",  prev:"PSL 3 · 13th",  src:"img/cards/ELLIS.jpg",   team:"yellow"},
+  {name:"Hazel",  prev:"PSL 18 · 3rd*", src:"img/cards/HAZEL.jpg",   team:"red"},
+  {name:"Jamie",  prev:"PSL 15 · 9th",  src:"img/cards/JAMIE.jpg",   team:"yellow"},
+  {name:"Jeremy", prev:"PSL 17 · 8th",  src:"img/cards/JEREMY.jpg",  team:"red"},
+  {name:"Karen",  prev:"PSL 14 · 3rd",  src:"img/cards/KAREN.jpg",   team:"yellow"},
+  {name:"Khen",   prev:"PSL 11 · 2nd",  src:"img/cards/KHEN.jpg",    team:"red"},
+  {name:"Kx",     prev:"PSL 19 · 12th", src:"img/cards/KX.jpg",      team:"yellow"},
+  {name:"Lau",    prev:"PSL 14 · 2nd",  src:"img/cards/LAU.jpg",     team:"red"},
+  {name:"Lee",    prev:"PSL 8 · 13th",  src:"img/cards/LEE.jpg",     team:"yellow"},
+  {name:"Louis",  prev:"PSL 9 · 2nd",   src:"img/cards/LOUIS.jpg",   team:"red"},
+  {name:"Mhill",  prev:"PSL 13 · 16th", src:"img/cards/MHILL.jpg",   team:"yellow"},
+  {name:"Paul",   prev:"PSL 6 · 15th",  src:"img/cards/PAUL.jpg",    team:"red"},
+  {name:"Renzo",  prev:"PSL 7 · 8th",   src:"img/cards/RENZO.jpg",   team:"yellow"},
+  {name:"Waks",   prev:"PSL 15 · 11th", src:"img/cards/WAKS.jpg",    team:"red"},
+];
+
+let picks=new Array(12).fill(null),centerPicks=[null,null],activeCell=null;
+// overlayAlpha = the CSS overlay opacity (0=transparent=bg fully visible, 1=opaque=bg hidden)
+// slider value = "visibility" percentage (0%=hidden, 100%=fully visible) = inverted
+let overlayVisibility=28, overlayAlpha=0.72;
+let currentBg=BG_PRESETS[0].url,activePreset=0;
+let uploadedBgData=null,currentCanvasDataUrl=null,playerName='';
+
+// ── THEME ──
+function applyTheme(){
+  const body=document.body;
+  body.classList.remove('theme-yellow','theme-red');
+  // Use first set center pick for theme, fallback to second
+  const pick=centerPicks[0]!==null?centerPicks[0]:centerPicks[1];
+  if(pick===null)return;
+  const t=PLAYERS[pick].team;
+  if(t==='yellow')body.classList.add('theme-yellow');
+  else if(t==='red')body.classList.add('theme-red');
+}
+
+// ── BG PRESETS ──
+function selectPreset(i){
+  activePreset=i;uploadedBgData=null;currentBg=BG_PRESETS[i].url;
+  document.getElementById('bingo-card').style.backgroundImage=`url(${currentBg})`;
+  document.querySelectorAll('.bg-thumb').forEach((t,j)=>t.classList.toggle('active',j===i));
+}
+function triggerBgUpload(){document.getElementById('bg-file-input').click();}
+function handleBgUpload(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    uploadedBgData=e.target.result;currentBg=uploadedBgData;
+    document.getElementById('bingo-card').style.backgroundImage=`url(${currentBg})`;
+    document.querySelectorAll('.bg-thumb').forEach(t=>t.classList.remove('active'));
+    activePreset=-1;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── OVERLAY — slider is "visibility" (100% = bg fully visible = overlay opacity 0)
+function liveOverlay(val){
+  overlayVisibility=parseInt(val);
+  overlayAlpha=1-(overlayVisibility/100);
+  document.getElementById('overlay-val').textContent=val+'%';
+  document.getElementById('bg-overlay').style.background=`rgba(5,10,20,${overlayAlpha.toFixed(2)})`;
+}
+
+// ── GRID ──
+function buildGrid(){
+  const grid=document.getElementById('bingo-grid');
+  grid.innerHTML='';
+  grid.style.gridTemplateRows='repeat(4,1fr)';
+  grid.style.gridTemplateColumns='repeat(4,1fr)';
+  const positions=[
+    {col:1,row:1,idx:0},{col:2,row:1,idx:1},{col:3,row:1,idx:2},{col:4,row:1,idx:3},
+    {col:1,row:2,idx:4},{center:true,centerIdx:0},
+    {center:true,centerIdx:1},{col:4,row:2,idx:5},{col:1,row:3,idx:6},{col:4,row:3,idx:7},
+    {col:1,row:4,idx:8},{col:2,row:4,idx:9},{col:3,row:4,idx:10},{col:4,row:4,idx:11},
+  ];
+  positions.forEach(pos=>{
+    const cell=document.createElement('div');
+    if(pos.center){
+      cell.className='cell center';
+      // Each center cell spans 1 column x 2 rows
+      cell.style.gridColumn=(pos.centerIdx===0)?'2/3':'3/4';
+      cell.style.gridRow='2/4';
+      renderCenterCell(cell,pos.centerIdx);
+      cell.onclick=()=>openPicker(true,pos.centerIdx);
+    } else {
+      cell.className='cell'+(picks[pos.idx]!==null?' filled':'');
+      cell.style.gridColumn=pos.col;cell.style.gridRow=pos.row;
+      renderNormalCell(cell,pos.idx);cell.onclick=()=>openPicker(false,pos.idx);
+    }
+    grid.appendChild(cell);
+  });
+}
+
+function renderNormalCell(cell,idx){
+  cell.innerHTML='';
+  const pick=picks[idx];
+  if(pick!==null){
+    const p=PLAYERS[pick];
+    if(p.src){const img=document.createElement('img');img.className='cell-face';img.src=p.src;img.alt=p.name;cell.appendChild(img);}
+    else{const ph=document.createElement('div');ph.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.08);';ph.innerHTML=`<span style="font-family:Bebas Neue,sans-serif;font-size:12px;color:#fff;text-align:center;padding:4px;">${p.name}</span>`;cell.appendChild(ph);}
+    const lbl=document.createElement('div');lbl.className='cell-label';lbl.textContent=NON_CENTER_LABELS[idx];cell.appendChild(lbl);
+  } else {
+    const wrap=document.createElement('div');wrap.className='cell-empty-wrap';
+    wrap.innerHTML=`<span class="cell-plus">+</span><div class="cell-label-empty">${NON_CENTER_LABELS[idx]}</div>`;
+    cell.appendChild(wrap);
+  }
+}
+
+function renderCenterCell(cell,centerIdx){
+  cell.innerHTML='';
+  const pick=centerPicks[centerIdx];
+  const label=centerIdx===0?'🔥 WINNER\nPICK 1':'🔥 WINNER\nPICK 2';
+  if(pick!==null){
+    const p=PLAYERS[pick];cell.classList.add('filled');
+    if(p.src){const img=document.createElement('img');img.className='cell-face';img.src=p.src;img.alt=p.name;cell.appendChild(img);}
+    else{const ph=document.createElement('div');ph.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.1);';ph.innerHTML=`<span style="font-family:Bebas Neue,sans-serif;font-size:16px;color:#fff;text-align:center;padding:8px;">${p.name}</span>`;cell.appendChild(ph);}
+    const lbl=document.createElement('div');lbl.className='cell-label';lbl.textContent=label.replace('\n',' ');cell.appendChild(lbl);
+  } else {
+    cell.classList.remove('filled');
+    const wrap=document.createElement('div');wrap.className='cell-empty-wrap';
+    wrap.innerHTML=`<span class="cell-plus">\uD83D\uDD25</span><div class="cell-label-empty">${label.replace('\n','<br>')}</div>`;
+    cell.appendChild(wrap);
+  }
+}
+
+// ── NAME ──
+function updateName(val){
+  const nameInput=document.getElementById('player-name');
+  nameInput.style.border='';
+  nameInput.placeholder='Enter your name...';
+  playerName=val.trim();
+  const strip=document.getElementById('name-strip');
+  const titleEl=document.getElementById('card-main-title');
+  if(playerName){
+    strip.textContent=playerName.toUpperCase()+"'S BINGO CARD";
+    strip.classList.add('has-name');
+    titleEl.textContent=playerName.toUpperCase()+"'S BINGO CARD";
+  } else {
+    strip.textContent='\u2014 PICK YOUR PLAYERS \u2014';
+    strip.classList.remove('has-name');
+    titleEl.textContent='PSL BINGO CARD';
+  }
+}
+
+// ── PICKER ──
+function openPicker(isCenter,idx){
+  activeCell={isCenter,idx};
+  document.getElementById('picker-cell-label').textContent=
+    isCenter?('\uD83D\uDD25 WINNER PICK '+(idx+1)):NON_CENTER_LABELS[idx];
+  buildPlayerGrid();
+  const modal=document.getElementById('picker-modal');
+  modal.classList.remove('hidden');modal.scrollTop=0;
+}
+function closePicker(){document.getElementById('picker-modal').classList.add('hidden');activeCell=null;}
+function buildPlayerGrid(){
+  const grid=document.getElementById('player-grid');grid.innerHTML='';
+  const cur=activeCell.isCenter?centerPicks[activeCell.idx]:picks[activeCell.idx];
+  PLAYERS.forEach((p,i)=>{
+    const card=document.createElement('div');
+    card.className='player-card'+(cur===i?' selected':'');
+    if(p.src){const img=document.createElement('img');img.src=p.src;img.alt=p.name;img.loading='lazy';card.appendChild(img);}
+    else{const ph=document.createElement('div');ph.className='no-img-ph';ph.innerHTML='<span>No Image</span>';card.appendChild(ph);}
+    const nameEl=document.createElement('div');nameEl.className='player-card-name';nameEl.textContent=p.name;card.appendChild(nameEl);
+    const prevEl=document.createElement('div');prevEl.className='player-card-prev';prevEl.textContent=p.prev;card.appendChild(prevEl);
+    const check=document.createElement('div');check.className='player-card-check';check.textContent='\u2713';card.appendChild(check);
+    card.onclick=()=>{
+      const newPick=(cur===i)?null:i;
+      if(activeCell.isCenter){centerPicks[activeCell.idx]=newPick;applyTheme();}
+      else picks[activeCell.idx]=newPick;
+      buildGrid();closePicker();requestAnimationFrame(scaleCard);
+    };
+    grid.appendChild(card);
+  });
+}
+
+// ── iOS DETECTION ──
+function isIOS(){return /iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;}
+function isMobile(){return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);}
+
+// ─────────────────────────────────────────────
+// IMAGE GENERATION — pixel-perfect canvas render
+// Key fix: label is drawn anchored to BOTTOM of cell
+// with enough padding so it never clips
+// ─────────────────────────────────────────────
+async function generateImage(){
+  const btn=document.getElementById('btn-generate');
+
+  // ── Name required ──
+  const nameInput=document.getElementById('player-name');
+  if(!nameInput.value.trim()){
+    nameInput.style.border='1.5px solid #E8433A';
+    nameInput.placeholder='Name is required!';
+    nameInput.focus();
+    return;
+  }
+
+  btn.textContent='\u23F3 Generating...';btn.classList.add('loading');
+
+  // Temporarily remove scale transform so we measure true DOM dimensions
+  const scaler=document.getElementById('card-scaler');
+  const savedTransform=scaler.style.transform;
+  const savedMargin=scaler.style.marginBottom;
+  scaler.style.transform='';
+  scaler.style.marginBottom='';
+  void scaler.offsetHeight;
+
+  try {
+
+  // Read computed accent color from CSS variable
+  const computedAccent=getComputedStyle(document.documentElement)
+    .getPropertyValue('--accent').trim()||'#ffffff';
+
+  const card=document.getElementById('bingo-card');
+  const W=card.offsetWidth,H=card.offsetHeight;
+
+  // Draw at 3x for crisp output on retina
+  const SCALE=3;
+  const canvas=document.createElement('canvas');
+  canvas.width=W*SCALE;canvas.height=H*SCALE;
+  const ctx=canvas.getContext('2d');
+  ctx.scale(SCALE,SCALE);
+
+  // ── helpers ──
+  function loadImg(src){
+    return new Promise(res=>{
+      if(!src){res(null);return;}
+      const img=new Image();
+      // Only set crossOrigin for external URLs — setting it on same-origin
+      // local files (GitHub Pages) triggers unnecessary CORS preflight that can hang
+      const isExternal=src.startsWith('http')&&!src.startsWith(location.origin);
+      if(isExternal) img.crossOrigin='anonymous';
+      // Safety timeout — if image doesn't load in 6s, resolve null and move on
+      const t=setTimeout(()=>res(null),6000);
+      img.onload=()=>{clearTimeout(t);res(img);};
+      img.onerror=()=>{clearTimeout(t);res(null);};
+      // Only append cache-busting for external URLs; local paths need no cache-bust
+      // and adding query params can taint the canvas on some browsers
+      img.src=src.startsWith('data:')?src:(isExternal?src+(src.includes('?')?'&':'?')+'_t='+Date.now():src);
+    });
+  }
+
+  // Draws text wrapping inside maxW, anchored so the BOTTOM of the text block
+  // sits at bottomY (with bottomPad pixels of clearance from cell edge)
+  function drawLabelAtBottom(ctx,txt,cx,cellBottom,cellW,fontSize,bottomPad){
+    ctx.font=`700 ${fontSize}px Barlow Condensed,sans-serif`;
+    const lh=fontSize*1.2;
+    // split by explicit \n first, then word-wrap each segment
+    const segments=txt.split(/\\n|\n/);
+    const lines=[];
+    for(const seg of segments){
+      const words=seg.split(/\s+/);
+      let line='';
+      for(const w of words){
+        const test=line?line+' '+w:w;
+        if(ctx.measureText(test).width>cellW-6&&line){lines.push(line);line=w;}
+        else line=test;
+      }
+      if(line)lines.push(line);
+    }
+    const totalH=lines.length*lh;
+    // bottom of last line sits at cellBottom - bottomPad
+    const baseY=cellBottom-bottomPad-totalH+(lh*0.82);
+    lines.forEach((l,i)=>ctx.fillText(l,cx,baseY+i*lh));
+  }
+
+  // 1. Background
+  const bgImg=await loadImg(currentBg);
+  ctx.save();ctx.beginPath();ctx.rect(0,0,W,H);ctx.clip();
+  if(bgImg){
+    const sc=Math.max(W/bgImg.naturalWidth,H/bgImg.naturalHeight);
+    const dw=bgImg.naturalWidth*sc,dh=bgImg.naturalHeight*sc;
+    ctx.drawImage(bgImg,(W-dw)/2,(H-dh)/2,dw,dh);
+  } else {
+    ctx.fillStyle='#0a0f1a';ctx.fillRect(0,0,W,H);
+  }
+  ctx.fillStyle=`rgba(5,10,20,${overlayAlpha.toFixed(2)})`;
+  ctx.fillRect(0,0,W,H);
+  ctx.restore();
+
+  // 2. Header — measure actual DOM positions
+  const cardRect=card.getBoundingClientRect();
+  const headerEl=card.querySelector('.card-header');
+  const gridEl=card.querySelector('.grid');
+  const nameEl=card.querySelector('.name-strip');
+
+  // Use DOM layout to figure out where elements are relative to the card
+  function relY(el){return el.getBoundingClientRect().top-cardRect.top;}
+  function relH(el){return el.getBoundingClientRect().height;}
+
+  const headerBottom=relY(headerEl)+relH(headerEl);
+  const gridTop=relY(gridEl);
+  const gridHeight=relH(gridEl);
+  const gridBottom=gridTop+gridHeight;
+  const nameTop=relY(nameEl);
+  const nameBottom=nameTop+relH(nameEl);
+
+  // Logo
+  const logoImg=await loadImg('img/logo.png');
+  const logoSize=24,logoX=(W-logoSize)/2,logoY=relY(headerEl)+2;
+  if(logoImg){
+    ctx.save();
+    ctx.beginPath();ctx.arc(logoX+logoSize/2,logoY+logoSize/2,logoSize/2,0,Math.PI*2);
+    ctx.clip();ctx.drawImage(logoImg,logoX,logoY,logoSize,logoSize);
+    ctx.restore();
+    // circle border
+    ctx.strokeStyle=computedAccent;ctx.globalAlpha=0.3;ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(logoX+logoSize/2,logoY+logoSize/2,logoSize/2,0,Math.PI*2);ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+
+  const mainTitle=card.querySelector('#card-main-title').textContent;
+  const seasonText=card.querySelector('#card-season').textContent;
+
+  ctx.textAlign='center';
+  // Main title
+  ctx.fillStyle=computedAccent;
+  ctx.font='900 26px Bebas Neue,sans-serif';
+  ctx.fillText(mainTitle,W/2,logoY+logoSize+25);
+  // Season
+  ctx.fillStyle='rgba(255,255,255,0.45)';
+  ctx.font='600 8px Barlow Condensed,sans-serif';
+  ctx.fillText(seasonText,W/2,logoY+logoSize+36);
+
+  // 3. Grid — measure each cell from DOM
+  const GAP=3,PAD=9;
+  const gw=W-PAD*2;
+  const cs=(gw-GAP*3)/4;
+
+  // Cell definitions
+  const cps=[
+    {c:0,r:0,w:cs,h:cs,idx:0,center:false},
+    {c:1,r:0,w:cs,h:cs,idx:1,center:false},
+    {c:2,r:0,w:cs,h:cs,idx:2,center:false},
+    {c:3,r:0,w:cs,h:cs,idx:3,center:false},
+    {c:0,r:1,w:cs,h:cs,idx:4,center:false},
+    {c:1,r:1,w:cs,h:cs*2+GAP,idx:null,center:true,centerIdx:0},
+    {c:2,r:1,w:cs,h:cs*2+GAP,idx:null,center:true,centerIdx:1},
+    {c:3,r:1,w:cs,h:cs,idx:5,center:false},
+    {c:0,r:2,w:cs,h:cs,idx:6,center:false},
+    {c:3,r:2,w:cs,h:cs,idx:7,center:false},
+    {c:0,r:3,w:cs,h:cs,idx:8,center:false},
+    {c:1,r:3,w:cs,h:cs,idx:9,center:false},
+    {c:2,r:3,w:cs,h:cs,idx:10,center:false},
+    {c:3,r:3,w:cs,h:cs,idx:11,center:false},
+  ];
+
+  const GT=gridTop;
+
+  for(const cp of cps){
+    const x=PAD+cp.c*(cs+GAP);
+    const y=GT+cp.r*(cs+GAP);
+    const cw=cp.w,ch=cp.h;
+    const pick=cp.center?centerPicks[cp.centerIdx]:picks[cp.idx];
+
+    ctx.save();ctx.beginPath();ctx.rect(x,y,cw,ch);ctx.clip();
+
+    if(pick!==null){
+      const p=PLAYERS[pick];
+      const fi=p.src?await loadImg(p.src):null;
+      if(fi){
+        // cover crop, face-biased (top 8-12%)
+        const sc=Math.max(cw/fi.naturalWidth,ch/fi.naturalHeight);
+        const dw=fi.naturalWidth*sc,dh=fi.naturalHeight*sc;
+        const faceOffsetY=cp.center?ch*0.08:ch*0.12;
+        ctx.drawImage(fi,x+(cw-dw)/2,y-faceOffsetY*(dh/ch)*0,dw,dh);
+      } else {
+        ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(x,y,cw,ch);
+        ctx.fillStyle='#fff';ctx.font=`700 ${cp.center?14:10}px Bebas Neue,sans-serif`;
+        ctx.textAlign='center';ctx.fillText(p.name,x+cw/2,y+ch/2+4);
+      }
+      // gradient scrim — taller for label room
+      const scrimH=ch*0.55;
+      const grd=ctx.createLinearGradient(0,y+ch-scrimH,0,y+ch);
+      grd.addColorStop(0,'rgba(0,0,0,0)');grd.addColorStop(0.4,'rgba(0,0,0,0.6)');grd.addColorStop(1,'rgba(0,0,0,0.95)');
+      ctx.fillStyle=grd;ctx.fillRect(x,y,cw,ch);
+      // label — anchored to bottom, 4px clearance
+      ctx.fillStyle='#ffffff';ctx.textAlign='center';
+      const labelTxt=cp.center?('\uD83D\uDD25 WINNER PICK '+(cp.centerIdx+1)):NON_CENTER_LABELS[cp.idx];
+      const fs=cp.center?10:8.5;
+      drawLabelAtBottom(ctx,labelTxt,x+cw/2,y+ch,cw,fs,4);
+    } else {
+      // empty
+      ctx.fillStyle=cp.center?'rgba(255,255,255,0.08)':'rgba(8,12,22,0.78)';
+      ctx.fillRect(x,y,cw,ch);
+      // fire emoji or plus
+      ctx.font=`${cp.center?18:13}px sans-serif`;ctx.textAlign='center';
+      ctx.fillText(cp.center?'\uD83D\uDD25':'+',x+cw/2,y+ch*0.45);
+      // empty label centered
+      ctx.fillStyle=cp.center?computedAccent:'rgba(255,255,255,0.42)';
+      const fs=cp.center?10:8.5;
+      ctx.font=`700 ${fs}px Barlow Condensed,sans-serif`;
+      const emptyTxt=cp.center?('WINNER\nPICK '+(cp.centerIdx+1)):NON_CENTER_LABELS[cp.idx];
+      drawLabelAtBottom(ctx,emptyTxt,x+cw/2,y+ch,cw,fs,4);
+    }
+    ctx.restore();
+
+    // border
+    const isAccent=(pick!==null||cp.center);
+    ctx.strokeStyle=isAccent?computedAccent:'rgba(255,255,255,0.18)';
+    ctx.lineWidth=cp.center?1.5:0.75;
+    ctx.strokeRect(x,y,cw,ch);
+  }
+
+  // 4. Name strip
+  const sepY=nameTop+1;
+  ctx.strokeStyle=computedAccent;ctx.globalAlpha=0.15;ctx.lineWidth=0.75;
+  ctx.beginPath();ctx.moveTo(PAD,sepY);ctx.lineTo(W-PAD,sepY);ctx.stroke();
+  ctx.globalAlpha=1;
+  const dispName=playerName?playerName.toUpperCase()+"'S BINGO CARD":'PSL FANTASY BINGO';
+  ctx.textAlign='center';
+  ctx.fillStyle=playerName?computedAccent:'rgba(255,255,255,0.25)';
+  ctx.font='700 11px Barlow Condensed,sans-serif';
+  // center vertically in the name strip area
+  ctx.fillText(dispName,W/2,nameTop+(relH(nameEl)/2)+4);
+
+    // 5. Show preview — restore scale first
+    scaler.style.transform=savedTransform;
+    scaler.style.marginBottom=savedMargin;
+    currentCanvasDataUrl=canvas.toDataURL('image/png');
+    btn.textContent='\u2B07 Save Card';btn.classList.remove('loading');
+    showPreview(currentCanvasDataUrl);
+
+  } catch(err) {
+    // Always restore state so the button never stays stuck
+    scaler.style.transform=savedTransform;
+    scaler.style.marginBottom=savedMargin;
+    btn.textContent='\u2B07 Save Card';btn.classList.remove('loading');
+    console.error('generateImage error:', err);
+    alert('Something went wrong generating the card. Please try again.');
+  }
+}
+
+function showPreview(dataUrl){
+  document.getElementById('preview-img').src=dataUrl;
+  const instrEl=document.getElementById('save-text');
+  const dlBtn=document.getElementById('btn-dl-desktop');
+  if(isIOS()){
+    instrEl.innerHTML='<strong>Hold the image</strong> below then tap <strong>"Save to Photos"</strong> to add it directly to your camera roll.';
+    dlBtn.style.display='none';
+  } else if(isMobile()){
+    instrEl.innerHTML='<strong>Long press the image</strong> below then tap <strong>"Download image"</strong> or <strong>"Save to Photos"</strong>.';
+    dlBtn.style.display='none';
+  } else {
+    instrEl.innerHTML='Click <strong>Download</strong> below, or right-click the image → <strong>"Save image as…"</strong>';
+    dlBtn.style.display='block';
+  }
+  document.getElementById('preview-modal').classList.remove('hidden');
+}
+function closePreview(){document.getElementById('preview-modal').classList.add('hidden');}
+function desktopDownload(){
+  if(!currentCanvasDataUrl)return;
+  const name=(playerName||'bingo').replace(/\s+/g,'-').toLowerCase();
+  const a=document.createElement('a');a.href=currentCanvasDataUrl;
+  a.download=`psl-bingo-${name}.png`;document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+// ── INIT ──
+document.getElementById('bingo-card').style.backgroundImage=`url(${BG_PRESETS[0].url})`;
+// Set initial overlay (28% visible = 0.72 opacity)
+document.getElementById('bg-overlay').style.background=`rgba(5,10,20,${overlayAlpha.toFixed(2)})`;
+buildGrid();
+// Re-scale after grid renders (grid height determines card height)
+requestAnimationFrame(scaleCard);
+
+// ── AUTO-SCALE: fit card to available viewport height ──
+// The card is the main content; we scale it so it fits without scrolling on any screen.
+// On desktop it's capped at natural size (max-width 464px).
+// On mobile it fills the width already, so we only scale DOWN if it overflows vertically.
+function scaleCard(){
+  const scaler=document.getElementById('card-scaler');
+  const card=document.getElementById('bingo-card');
+
+  // Reset scale to measure natural size
+  scaler.style.transform='';
+  scaler.style.marginBottom='';
+
+  const naturalW=scaler.offsetWidth;   // already capped by max-width:464px
+  const naturalH=card.offsetHeight;    // card's real height at current width
+
+  // Available height = viewport minus everything else above + below
+  // (topbar ~60px, bg-strip ~68px, overlay-strip ~38px, footer ~56px, body padding 80px + gaps)
+  const chrome=60+68+38+56+80+24;     // ~326px of surrounding UI
+  const available=window.innerHeight-chrome;
+
+  if(naturalH<=available){
+    // Fits fine — no scaling needed
+    scaler.style.transform='';
+    scaler.style.marginBottom='';
+    return;
+  }
+
+  // Scale down so card fits
+  const scale=Math.max(available/naturalH, 0.55); // never smaller than 55%
+  scaler.style.transform=`scale(${scale})`;
+  scaler.style.transformOrigin='top center';
+  // Compensate: scaled element still occupies original space in flow,
+  // so pull subsequent elements up by the lost height
+  const lost=naturalH*(1-scale);
+  scaler.style.marginBottom=`-${lost}px`;
+}
+
+scaleCard();
+window.addEventListener('resize', scaleCard);
+</script>
+</body>
+</html>
