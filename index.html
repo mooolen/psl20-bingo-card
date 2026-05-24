@@ -221,7 +221,7 @@ body{font-family:'Barlow',sans-serif;background:#0a0f1a;min-height:100vh;display
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-left">
-    <img class="topbar-logo" src="img/logo.jpg" alt="PSL Logo" onerror="this.style.display='none'">
+    <img class="topbar-logo" src="img/logo.png" alt="PSL Logo" onerror="this.style.display='none'">
     <div>
       <div class="topbar-title">PSL Bingo</div>
       <div class="topbar-sub" id="topbar-sub">PSL 20: Camiguin · Second Chance</div>
@@ -255,7 +255,7 @@ body{font-family:'Barlow',sans-serif;background:#0a0f1a;min-height:100vh;display
   <div class="card-bg-overlay" id="bg-overlay"></div>
   <div class="card-inner">
     <div class="card-header">
-      <img class="card-header-logo" src="img/logo.jpg" alt="PSL" onerror="this.style.display='none'">
+      <img class="card-header-logo" src="img/logo.png" alt="PSL" onerror="this.style.display='none'">
       <div class="card-header-league">Pinoy Survivor League</div>
       <div class="card-header-title" id="card-main-title">PSL BINGO CARD</div>
       <div class="card-header-season" id="card-season">PSL 20: Camiguin — Second Chance</div>
@@ -591,7 +591,7 @@ async function generateImage(){
   const nameBottom=nameTop+relH(nameEl);
 
   // Logo
-  const logoImg=await loadImg('img/logo.jpg');
+  const logoImg=await loadImg('img/logo.png');
   const logoSize=24,logoX=(W-logoSize)/2,logoY=relY(headerEl)+2;
   if(logoImg){
     ctx.save();
