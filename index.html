@@ -256,7 +256,6 @@ body{font-family:'Barlow',sans-serif;background:#0a0f1a;min-height:100vh;display
   <div class="card-inner">
     <div class="card-header">
       <img class="card-header-logo" src="img/logo.png" alt="PSL" onerror="this.style.display='none'">
-      <div class="card-header-league">Pinoy Survivor League</div>
       <div class="card-header-title" id="card-main-title">PSL BINGO CARD</div>
       <div class="card-header-season" id="card-season">PSL 20: Camiguin — Second Chance</div>
     </div>
@@ -599,9 +598,9 @@ async function generateImage(){
     ctx.clip();ctx.drawImage(logoImg,logoX,logoY,logoSize,logoSize);
     ctx.restore();
     // circle border
-    ctx.strokeStyle=computedAccent;ctx.globalAlpha=0.3;ctx.lineWidth=1;
-    ctx.beginPath();ctx.arc(logoX+logoSize/2,logoY+logoSize/2,logoSize/2,0,Math.PI*2);ctx.stroke();
-    ctx.globalAlpha=1;
+    // ctx.strokeStyle=computedAccent;ctx.globalAlpha=0.3;ctx.lineWidth=1;
+    // ctx.beginPath();ctx.arc(logoX+logoSize/2,logoY+logoSize/2,logoSize/2,0,Math.PI*2);ctx.stroke();
+    // ctx.globalAlpha=1;
   }
 
   const leagueText=card.querySelector('.card-header-league').textContent;
