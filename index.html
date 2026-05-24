@@ -441,6 +441,7 @@ function renderCenterCell(cell){
 
 // ── NAME ──
 function updateName(val){
+  document.getElementById('player-name').style.border = '';
   playerName=val.trim();
   const strip=document.getElementById('name-strip');
   const titleEl=document.getElementById('card-main-title');
@@ -496,6 +497,16 @@ function isMobile(){return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.use
 // with enough padding so it never clips
 // ─────────────────────────────────────────────
 async function generateImage(){
+  // ADD THIS — bail out if no name
+  const nameInput = document.getElementById('player-name');
+  if (!nameInput.value.trim()) {
+    nameInput.focus();
+    nameInput.style.border = '1.5px solid #E8433A';
+    btn.textContent = '⬇ Save Card';
+    btn.classList.remove('loading');
+    return;
+  }
+
   const btn=document.getElementById('btn-generate');
   btn.textContent='\u23F3 Generating...';btn.classList.add('loading');
 
