@@ -81,7 +81,6 @@ body{font-family:'Barlow',sans-serif;background:#0a0f1a;min-height:100vh;display
 /* CARD HEADER */
 .card-header{text-align:center;margin-bottom:8px;}
 .card-header-logo{width:32px;height:32px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 4px;}
-.card-header-league{font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;opacity:0.75;}
 .card-header-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:4px;color:var(--accent);line-height:1;}
 .card-header-season{font-family:'Barlow Condensed',sans-serif;font-size:9px;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;}
 
@@ -142,7 +141,7 @@ body{font-family:'Barlow',sans-serif;background:#0a0f1a;min-height:100vh;display
 .cell.center .cell-plus{font-size:22px;color:rgba(255,255,255,0.25);}
 .cell-label-empty{
   font-family:'Barlow Condensed',sans-serif;
-  font-size:14px;font-weight:700;letter-spacing:0.3px;
+  font-size:12px;font-weight:700;letter-spacing:0.3px;
   text-transform:uppercase;color:rgba(255,255,255,0.75);
   text-align:center;line-height:1.2;
   word-break:break-word;
@@ -261,7 +260,8 @@ body{font-family:'Barlow',sans-serif;background:#0a0f1a;min-height:100vh;display
     </div>
     <div class="grid" id="bingo-grid"></div>
     <div class="name-strip" id="name-strip">— PICK YOUR PLAYERS —</div>
-  </div><!-- /#bingo-card -->
+  </div><!-- /#card-inner -->
+</div><!-- /#bingo-card -->
 </div><!-- /#card-scaler -->
 <div class="outer-footer">
   <input class="footer-name-input" id="player-name" type="text" placeholder="Enter your name..." maxlength="28" oninput="updateName(this.value)" />
@@ -307,9 +307,9 @@ const BG_PRESETS=[
 ];
 
 const NON_CENTER_LABELS=[
-  "2nd Member\nof The Jury","2nd Boot","2nd Boat Marooning","2nd Indiv.\nImmunity Winner",
-  "2nd Idol Play","2nd to Find\nAn Advantage","2nd Video\nConfessional","2nd Person\nto Cry",
-  "Merger","Day 38","2nd Place","Merger"
+  "2nd Boot","2nd Indiv.\nImmunity Winner","2nd Place","2nd Member\nof Jury",
+  "Merger","Merger","Merger","Merger",
+  "Merger","How Many\nFinalists?","How Many\nJurors?","Merger"
 ];
 
 // ── PLAYERS — add team:"yellow" or team:"red" per cast ──
@@ -545,13 +545,13 @@ async function generateImage(){
       // local files (GitHub Pages) triggers unnecessary CORS preflight that can hang
       const isExternal=src.startsWith('http')&&!src.startsWith(location.origin);
       if(isExternal) img.crossOrigin='anonymous';
-      img.onload=()=>res(img);
-      img.onerror=()=>res(null);
       // Safety timeout — if image doesn't load in 6s, resolve null and move on
       const t=setTimeout(()=>res(null),6000);
       img.onload=()=>{clearTimeout(t);res(img);};
       img.onerror=()=>{clearTimeout(t);res(null);};
-      img.src=src.startsWith('data:')?src:src+(src.includes('?')?'&':'?')+'_t='+Date.now();
+      // Only append cache-busting for external URLs; local paths need no cache-bust
+      // and adding query params can taint the canvas on some browsers
+      img.src=src.startsWith('data:')?src:(isExternal?src+(src.includes('?')?'&':'?')+'_t='+Date.now():src);
     });
   }
 
@@ -624,16 +624,10 @@ async function generateImage(){
     ctx.globalAlpha=1;
   }
 
-  const leagueText=card.querySelector('.card-header-league').textContent;
   const mainTitle=card.querySelector('#card-main-title').textContent;
   const seasonText=card.querySelector('#card-season').textContent;
 
   ctx.textAlign='center';
-  // League
-  ctx.fillStyle=computedAccent;ctx.globalAlpha=0.6;
-  ctx.font='600 8px Barlow Condensed,sans-serif';
-  ctx.fillText(leagueText.toUpperCase(),W/2,logoY+logoSize+10);
-  ctx.globalAlpha=1;
   // Main title
   ctx.fillStyle=computedAccent;
   ctx.font='900 26px Bebas Neue,sans-serif';
